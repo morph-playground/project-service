@@ -21,9 +21,9 @@ export class ProjectService {
     this.permissionServiceClient = permissionServiceClient;
   }
 
-  async createProject(userId: string, payload: CreateProjectPayload): Promise<Project> {
+  async createProject(userId: string, payload: CreateProjectPayload, tenantId?: string): Promise<Project> {
     console.log(`Creating project for user: ${userId}`);
-    const allowed = await this.permissionServiceClient.hasPermission(userId, Domain.PROJECT, Action.CREATE);
+    const allowed = await this.permissionServiceClient.hasPermission(userId, Domain.PROJECT, Action.CREATE, tenantId);
     if (!allowed) {
       console.error('Forbidden: User not allowed to create project');
       throw new Error('Forbidden');
@@ -39,9 +39,9 @@ export class ProjectService {
     return project;
   }
 
-  async getProjects(userId: string): Promise<Project[]> {
+  async getProjects(userId: string, tenantId?: string): Promise<Project[]> {
     console.log(`Fetching projects for user: ${userId}`);
-    const allowed = await this.permissionServiceClient.hasPermission(userId, Domain.PROJECT, Action.LIST);
+    const allowed = await this.permissionServiceClient.hasPermission(userId, Domain.PROJECT, Action.LIST, tenantId);
     if (!allowed) {
       console.error('Forbidden: User not allowed to list projects');
       throw new Error('Forbidden');
