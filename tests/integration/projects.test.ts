@@ -3,6 +3,7 @@ import express from 'express';
 import { createApp } from '../../src/app';
 import nock from 'nock';
 import { Domain, Action } from '../../src/clients/permission-service.client';
+import { randomUUID } from "node:crypto";
 
 const permissionServiceHost = 'localhost';
 const permissionServicePort = 3001;
@@ -10,12 +11,14 @@ const permissionServiceBaseUrl = `http://${permissionServiceHost}:${permissionSe
 
 describe('Project API Integration Tests', () => {
   let app: express.Application;
-  const userId = 'test-user';
+  let userId: string;
 
   beforeAll(() => {
     app = createApp({ host: permissionServiceHost, port: permissionServicePort });
   });
-
+  beforeEach(() => {
+    userId = randomUUID();
+  });
   afterEach(() => {
     nock.cleanAll();
   });
