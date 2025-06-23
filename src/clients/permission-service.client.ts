@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-console.log('Initializing PermissionServiceClient');
+
 
 export enum Domain {
   PROJECT = 'PROJECT',
@@ -35,7 +35,7 @@ export class PermissionServiceClient {
   }
 
   async hasPermission(subjectId: string, domain: Domain, action: Action): Promise<boolean> {
-    console.log(`Checking permission for subjectId: ${subjectId}, domain: ${domain}, action: ${action}`);
+    
     try {
       const response = await axios.get<PermissionResponse>(
         `${this.baseUrl}/permissions/check`,
@@ -47,15 +47,15 @@ export class PermissionServiceClient {
           }
         }
       );
-      console.log(`Permission response: ${response.data.allowed}`);
+      
       return response.data.allowed;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error(`Permission check failed: ${error.message}`);
+        
       } else {
-        console.error(`Unexpected error during permission check: ${error}`);
+        
       }
-      console.log('Denying permission due to error');
+      
       return false; // Default to denying permission on error
     }
   }
