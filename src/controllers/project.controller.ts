@@ -26,7 +26,13 @@ export class ProjectController {
       return;
     }
     try {
-      const project = await this.projectService.createProject(userId, { name, description });
+      const tenantId = this.identityProvider.getTenantId(req);
+      if (!tenantId) {
+        console.error('Tenant ID is required');
+        res.status(400).json({ error: 'Tenant ID is required' });
+        return;
+      }
+      const project = await this.projectService.createProject(userId, tenantId, { name, description });
       console.log('Project created:', project);
       res.status(201).json(project);
     } catch (err: any) {
@@ -49,7 +55,13 @@ export class ProjectController {
       return;
     }
     try {
-      const projects = await this.projectService.getProjects(userId);
+      const tenantId = this.identityProvider.getTenantId(req);
+      if (!tenantId) {
+        console.error('Tenant ID is required');
+        res.status(400).json({ error: 'Tenant ID is required' });
+        return;
+      }
+      const projects = await this.projectService.getProjects(userId, tenantId);
       console.log('Projects retrieved:', projects);
       res.status(200).json(projects);
     } catch (err: any) {
