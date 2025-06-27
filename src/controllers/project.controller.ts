@@ -14,7 +14,8 @@ export class ProjectController {
   async createProject(req: Request, res: Response): Promise<void> {
     console.log('Creating a new project...');
     const userId = this.identityProvider.getUserId(req);
-    if (!userId) {
+    const tenantId = this.identityProvider.getTenantId(req);
+    if (!userId || !tenantId) {
       console.error('Unauthorized request');
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -26,7 +27,7 @@ export class ProjectController {
       return;
     }
     try {
-      const project = await this.projectService.createProject(userId, { name, description });
+      const project = await this.projectService.createProject(userId, tenantId, { name, description });
       console.log('Project created:', project);
       res.status(201).json(project);
     } catch (err: any) {
@@ -43,13 +44,14 @@ export class ProjectController {
   async getProjects(req: Request, res: Response): Promise<void> {
     console.log('Retrieving projects...');
     const userId = this.identityProvider.getUserId(req);
-    if (!userId) {
+    const tenantId = this.identityProvider.getTenantId(req);
+    if (!userId || !tenantId) {
       console.error('Unauthorized request');
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
     try {
-      const projects = await this.projectService.getProjects(userId);
+      const projects = await this.projectService.getProjects(userId, tenantId);
       console.log('Projects retrieved:', projects);
       res.status(200).json(projects);
     } catch (err: any) {

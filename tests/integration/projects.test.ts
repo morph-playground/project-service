@@ -12,12 +12,14 @@ const permissionServiceBaseUrl = `http://${permissionServiceHost}:${permissionSe
 describe('Project API Integration Tests', () => {
   let app: express.Application;
   let userId: string;
+  let tenantId: string;
 
   beforeAll(() => {
     app = createApp({ host: permissionServiceHost, port: permissionServicePort });
   });
   beforeEach(() => {
     userId = randomUUID();
+    tenantId = randomUUID();
   });
   afterEach(() => {
     nock.cleanAll();
@@ -26,9 +28,10 @@ describe('Project API Integration Tests', () => {
   describe('POST /projects', () => {
     it('should create a project when user has CREATE permission', async () => {
       nock(permissionServiceBaseUrl)
-        .get('/permissions/check')
+        .get('/permissions/v2/check')
         .query((params) =>
           params.subjectId === userId &&
+          params.tenantId === tenantId &&
           params.domain === Domain.PROJECT &&
           params.action === Action.CREATE
         )
@@ -37,6 +40,7 @@ describe('Project API Integration Tests', () => {
       const res = await request(app)
         .post('/projects')
         .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId)
         .send({ name: 'My Project', description: 'Test project' });
 
       expect(res.status).toBe(201);
@@ -44,11 +48,21 @@ describe('Project API Integration Tests', () => {
       expect(res.body.name).toBe('My Project');
       expect(res.body.description).toBe('Test project');
       expect(res.body.ownerId).toBe(userId);
+      expect(res.body.tenantId).toBe(tenantId);
     });
 
     it('should return 401 if no user id', async () => {
       const res = await request(app)
         .post('/projects')
+        .set('identity-tenant-id', tenantId)
+        .send({ name: 'My Project' });
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 401 if no tenant id', async () => {
+      const res = await request(app)
+        .post('/projects')
+        .set('identity-user-id', userId)
         .send({ name: 'My Project' });
       expect(res.status).toBe(401);
     });
@@ -57,15 +71,17 @@ describe('Project API Integration Tests', () => {
       const res = await request(app)
         .post('/projects')
         .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId)
         .send({ description: 'No name' });
       expect(res.status).toBe(400);
     });
 
     it('should return 403 if CREATE is forbidden', async () => {
       nock(permissionServiceBaseUrl)
-        .get('/permissions/check')
+        .get('/permissions/v2/check')
         .query((params) =>
           params.subjectId === userId &&
+          params.tenantId === tenantId &&
           params.domain === Domain.PROJECT &&
           params.action === Action.CREATE
         )
@@ -74,6 +90,7 @@ describe('Project API Integration Tests', () => {
       const res = await request(app)
         .post('/projects')
         .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId)
         .send({ name: 'Should fail' });
 
       expect(res.status).toBe(403);
@@ -83,9 +100,10 @@ describe('Project API Integration Tests', () => {
   describe('GET /projects', () => {
     it('should return empty list when no projects exist', async () => {
       nock(permissionServiceBaseUrl)
-        .get('/permissions/check')
+        .get('/permissions/v2/check')
         .query((params) =>
           params.subjectId === userId &&
+          params.tenantId === tenantId &&
           params.domain === Domain.PROJECT &&
           params.action === Action.LIST
         )
@@ -93,7 +111,8 @@ describe('Project API Integration Tests', () => {
 
       const res = await request(app)
         .get('/projects')
-        .set('identity-user-id', userId);
+        .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
@@ -102,17 +121,19 @@ describe('Project API Integration Tests', () => {
 
     it('should list only user\'s projects', async () => {
       nock(permissionServiceBaseUrl)
-        .get('/permissions/check')
+        .get('/permissions/v2/check')
         .query((params) =>
           params.subjectId === userId &&
+          params.tenantId === tenantId &&
           params.domain === Domain.PROJECT &&
           params.action === Action.CREATE
         )
         .reply(200, { allowed: true });
       nock(permissionServiceBaseUrl)
-        .get('/permissions/check')
+        .get('/permissions/v2/check')
         .query((params) =>
           params.subjectId === userId &&
+          params.tenantId === tenantId &&
           params.domain === Domain.PROJECT &&
           params.action === Action.LIST
         )
@@ -122,31 +143,44 @@ describe('Project API Integration Tests', () => {
       await request(app)
         .post('/projects')
         .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId)
         .send({ name: 'Proj1' });
 
       const res = await request(app)
         .get('/projects')
-        .set('identity-user-id', userId);
+        .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBe(1);
       expect(res.body[0].name).toBe('Proj1');
       expect(res.body[0].ownerId).toBe(userId);
+      expect(res.body[0].tenantId).toBe(tenantId);
     });
 
     it('should return 401 if no user id', async () => {
       const res = await request(app)
-        .get('/projects');
+        .get('/projects')
+        .set('identity-tenant-id', tenantId);
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 401 if no tenant id', async () => {
+      const res = await request(app)
+        .get('/projects')
+        .set('identity-user-id', userId);
 
       expect(res.status).toBe(401);
     });
 
     it('should return 403 if LIST is forbidden', async () => {
       nock(permissionServiceBaseUrl)
-        .get('/permissions/check')
+        .get('/permissions/v2/check')
         .query((params) =>
           params.subjectId === userId &&
+          params.tenantId === tenantId &&
           params.domain === Domain.PROJECT &&
           params.action === Action.LIST
         )
@@ -154,7 +188,8 @@ describe('Project API Integration Tests', () => {
 
       const res = await request(app)
         .get('/projects')
-        .set('identity-user-id', userId);
+        .set('identity-user-id', userId)
+        .set('identity-tenant-id', tenantId);
 
       expect(res.status).toBe(403);
     });
